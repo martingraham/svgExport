@@ -6,11 +6,9 @@ chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
 
         var svgs = [].slice.apply(document.getElementsByTagName('svg'));
-        console.log ("svgs", svgs);
-        var ss = grabStyles();
-        console.log ("styles", ss);
-        var docs = svgs.map (function(svg) { return makeSVGDoc (svg, ss); });
-        console.log ("docs", docs);
+        //console.log ("svgs", svgs);
+        var docs = svgs.map (function(svg) { return makeSVGDoc (svg); });
+        //console.log ("docs", docs);
         saveSVGDocs (docs);
 
         sendResponse({status: "finished"});
@@ -19,34 +17,41 @@ chrome.runtime.onMessage.addListener(
 
 );
 
-function grabStyles () {
-    var styles = [];
-    var ss = document.styleSheets;
-    for (var i = 0; i < ss.length; i++) {
-        var sheet = ss[i];
-        var rules = sheet.cssRules || sheet.rules;
-        for (var j = 0; j < rules.length; j++) {
-            var rule = rules[j];
-            styles.push (rule.cssText);
-        }
-    }
 
-    return styles.join("\n");
-}
-
-function makeSVGDoc (svgElem, styles) {
+function makeSVGDoc (svgElem) {
     var cloneSVG = svgElem.cloneNode (true);
     cloneSVG.setAttribute ("version", "1.1");
     //cloneSVG.setAttribute ("xmlns", "http://www.w3.org/2000/svg");    // XMLSerializer does this
     cloneSVG.setAttribute ("xmlns:xlink", "http://www.w3.org/1999/xlink");  // when I used setAttributeNS it ballsed up
 
+    var styles = usedStylesInSubDOM (svgElem);
+
     var styleElem = document.createElement ("style");
     styleElem.setAttribute ("type", "text/css");
-    var styleText = document.createTextNode (styles);
+    var styleText = document.createTextNode (styles.join("\n"));
     styleElem.appendChild (styleText);
     cloneSVG.insertBefore (styleElem, cloneSVG.firstChild);
 
     return cloneSVG;
+}
+
+// code adapted from user adardesign's answer in http://stackoverflow.com/questions/13204785/is-it-possible-to-read-the-styles-of-css-classes-not-being-used-in-the-dom-using
+function usedStylesInSubDOM (elem) {
+    var needed = [], currentRule;
+    var CSSSheets = document.styleSheets;
+
+    for(j=0;j<CSSSheets.length;j++){
+        for(i=0;i<CSSSheets[j].cssRules.length;i++){
+            currentRule = CSSSheets[j].cssRules[i].selectorText;
+
+            if(elem.querySelectorAll(currentRule).length > 0){
+                needed.push (CSSSheets[j].cssRules[i].cssText);
+            }
+        }
+    }
+
+    //console.log ("elem", elem, needed);
+    return needed;
 }
 
 function saveSVGDocs (svgDocs) {
