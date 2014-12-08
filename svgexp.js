@@ -13,8 +13,6 @@ chrome.runtime.onMessage.addListener(
 
         sendResponse({status: "finished"});
     }
-
-
 );
 
 
