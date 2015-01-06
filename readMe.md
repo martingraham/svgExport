@@ -3,7 +3,11 @@ Finally it serializes each SVG element and uses Eli Grey's FileSaver (https://gi
 
 Thanks to the user adardesign who's code i used from stackoverflow. The alternative was storing every declared css rule and this actually knackered the svg when it started including adblock css rules etc.
 
-To use it copy the repository to a folder on your computer. Then go to chrome, open chrome://extensions, tick "Developer mode", then select "load unpacked extension..." and navigate to the folder you downloaded this code to and select that folder. It should then pop up. Go to whichever page you want to save the svg from (refresh the page if you've just installed the extension) and then when you're ready click the blue svg hexagon in the browser bar. SVG Files should then start downloading to your downloads folder.
+***to install from the chrome store -->
+https://chrome.google.com/webstore/detail/export-svg-with-style/dkjdcaddoplepioppogpckelchefhddi?hl=en-GB
+
+***if you want to install it from the files here -->
+Copy the repository to a folder on your computer. Then go to chrome, open chrome://extensions, tick "Developer mode", then select "load unpacked extension..." and navigate to the folder you downloaded this code to and select that folder. It should then pop up. Go to whichever page you want to save the svg from (refresh the page if you've just installed the extension) and then when you're ready click the blue svg hexagon in the browser bar. SVG Files should then start downloading to your downloads folder.
 
 Why? Basically to save screen output from D3 based visualisations and blow it up to poster size. Saving the things as screenshots just makes them horribly pixelated.
 
