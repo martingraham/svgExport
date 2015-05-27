@@ -104,9 +104,17 @@ function usedStyles (elem, subtree) {
     for(j=0;j<CSSSheets.length;j++){
         for(i=0;i<CSSSheets[j].cssRules.length;i++){
             rule = CSSSheets[j].cssRules[i];
-            if( subtree ? elem.querySelectorAll(rule.selectorText).length > 0 : elem.matches(rule.selectorText)) {
-                needed.push (rule.cssText);
+            var bool = false;
+            // Issue reported, css rule '[ng:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak, .ng-hide:not(.ng-hide-animate)' gives error
+            // It's the [ng:cloak] bit that does the damage
+            // Fix found from https://github.com/exupero/saveSvgAsPng/issues/11 - but the css rule isn't applied
+            try {
+                bool = ( subtree ? elem.querySelectorAll(rule.selectorText).length > 0 : elem.matches(rule.selectorText));
             }
+            catch (err) {
+                console.warn ("CSS selector error: "+rule.selectorText+". Often angular issue.", err);
+            }
+            if (bool) { needed.push (rule.cssText); }
         }
     }
 
