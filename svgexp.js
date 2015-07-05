@@ -27,9 +27,9 @@ function makeSVGDoc (svgElem) {
     var predecessorInfo = parentChain (svgElem, styles);
 
     // make a chain of dummy svg nodes to include classes / ids of parent chain of our original svg
-    // this mimics any styles that are set outside of the original svg
-    // also immediate parent's computed style is captured and set on the dummy svg immediately above the original svg
+    // this means any styles referenced within the svg that depend on the presence of these classes/ids are fired
     var transferAttr = ["width", "height", "xmlns"];
+    var parentAdded = false;
     for (var p = 0; p < predecessorInfo.length; p++) {
         var pinf = predecessorInfo [p];
         var dummySVGElem = document.createElement ("svg");
@@ -48,7 +48,25 @@ function makeSVGDoc (svgElem) {
                 cloneSVG.removeAttribute (attr);
             });
             cloneSVG = dummySVGElem;
+            parentAdded = true;
         }
+    }
+    
+    // if no dummy parent added in previous section, but our svg isn't root then add one as placeholder
+    if (svgElem.parentNode != null && !parentAdded) {
+        var dummySVGElem = document.createElement ("svg");
+        dummySVGElem.appendChild (cloneSVG);
+        transferAttr.forEach (function (attr) {
+            dummySVGElem.setAttribute (attr, cloneSVG.getAttribute (attr));
+            cloneSVG.removeAttribute (attr);
+        });
+        cloneSVG = dummySVGElem;
+        parentAdded = true;
+    }
+    
+    // Copy svg's computed style (it's style context) if a dummy parent node has been introduced
+    if (parentAdded) {
+        cloneSVG.setAttribute ("style", window.getComputedStyle(svgElem).cssText);
     }
 
     cloneSVG.setAttribute ("version", "1.1");
@@ -67,13 +85,10 @@ function makeSVGDoc (svgElem) {
 
 function parentChain (elem, styles) {
     // Capture id / classes of svg's parent chain.
-    // Plus computed style of immediate parent.
     var elemArr = [];
-    var first = true;
     while (elem.parentNode !== document) {
         elem = elem.parentNode;
-        elemArr.push ({id: elem.id, class: elem.className, style: first ? window.getComputedStyle(elem).cssText : undefined});
-        first = false;
+        elemArr.push ({id: elem.id, class: elem.className});
     }
 
     // see if id or element class are referenced in any styles collected below the svg node
