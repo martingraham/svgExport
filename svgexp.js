@@ -95,11 +95,15 @@ function parentChain (elem, styles) {
     // if not, null the id / class as they're not going to be relevant
     elemArr.forEach (function (elemData) {
         var presences = {id: false, class: false};
+        var classes = elemData.class.split(" ").filter(function(a) { return a.length > 0; });   // v1.13: may be multiple classes in a containing class attribute
         styles.forEach (function (style) {
-            if (style.indexOf ("."+elemData.class) >= 0) {
-                presences.class = true;
+            for (var c = 0; c < classes.length; c++) {
+                if (style.indexOf ("."+classes[c]) >= 0) {
+                    presences.class = true;
+                    break;  // no need to keep looking through rest of classtypes if one is needed
+                }
             }
-            if (style.indexOf ("#"+elemData.id) >= 0) {
+            if (elemData.id && style.indexOf ("#"+elemData.id) >= 0) {
                 presences.id = true;
             }
         });
