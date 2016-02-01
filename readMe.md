@@ -11,4 +11,4 @@ Copy the repository to a folder on your computer. Then go to chrome, open chrome
 
 Why? Basically to save screen output from D3 based visualisations and blow it up to poster size. Saving the things as screenshots just makes them horribly pixelated.
 
-Martin Graham, Dec 2014
+Martin Graham, Jan 2016

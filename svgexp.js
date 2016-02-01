@@ -4,21 +4,38 @@
 
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-
-        var svgs = [].slice.apply(document.getElementsByTagName('svg'));
+        
+       var svgs = getAllSVGElements ();
         //console.log ("svgs", svgs);
-        var docs = svgs.map (function(svg) { return makeSVGDoc (svg); });
+        var svgDocs = svgs.map (function(svg) { return makeSVGDoc (svg); });
         //console.log ("docs", docs);
-        saveSVGDocs (docs);
+        saveSVGDocs (svgDocs);
 
         sendResponse({status: "finished"});
     }
 );
 
+function getAllSVGElements () {
+    // search through all document objects, including those in iframes
+    var allIFrames = [].slice.apply (document.getElementsByTagName('iframe'));
+    var docs = [document];
+    allIFrames.forEach (function (iframe) {
+        docs.push (iframe.contentDocument || iframe.contentWindow.document);
+    });
+
+    var allSvgs = [];
+    docs.forEach (function(doc) {
+        var allDocSvgs = [].slice.apply (doc.getElementsByTagName('svg'));
+        allSvgs.push.apply (allSvgs, allDocSvgs);
+    });
+    return allSvgs;
+}
+
 
 function makeSVGDoc (svgElem) {
     // clone node
     var cloneSVG = svgElem.cloneNode (true);
+    var ownerDoc = cloneSVG.ownerDocument || document;
 
     // find all styles inherited/referenced at or below this node
     var styles = usedStyles (svgElem, true);
@@ -32,7 +49,7 @@ function makeSVGDoc (svgElem) {
     var parentAdded = false;
     for (var p = 0; p < predecessorInfo.length; p++) {
         var pinf = predecessorInfo [p];
-        var dummySVGElem = document.createElement ("svg");
+        var dummySVGElem = ownerDoc.createElement ("svg");
         var empty = true;
         Object.keys(pinf).forEach (function (key) {
             if (pinf[key]) {
@@ -54,7 +71,7 @@ function makeSVGDoc (svgElem) {
     
     // if no dummy parent added in previous section, but our svg isn't root then add one as placeholder
     if (svgElem.parentNode != null && !parentAdded) {
-        var dummySVGElem = document.createElement ("svg");
+        var dummySVGElem = ownerDoc.createElement ("svg");
         dummySVGElem.appendChild (cloneSVG);
         transferAttr.forEach (function (attr) {
             dummySVGElem.setAttribute (attr, cloneSVG.getAttribute (attr));
@@ -74,9 +91,9 @@ function makeSVGDoc (svgElem) {
     cloneSVG.setAttribute ("xmlns:xlink", "http://www.w3.org/1999/xlink");  // when I used setAttributeNS it ballsed up
 
 
-    var styleElem = document.createElement ("style");
+    var styleElem = ownerDoc.createElement ("style");
     styleElem.setAttribute ("type", "text/css");
-    var styleText = document.createTextNode (styles.join("\n"));
+    var styleText = ownerDoc.createTextNode (styles.join("\n"));
     styleElem.appendChild (styleText);
     cloneSVG.insertBefore (styleElem, cloneSVG.firstChild);
 
@@ -85,8 +102,9 @@ function makeSVGDoc (svgElem) {
 
 function parentChain (elem, styles) {
     // Capture id / classes of svg's parent chain.
+    var ownerDoc = elem.ownerDocument || document;
     var elemArr = [];
-    while (elem.parentNode !== document) {
+    while (elem.parentNode !== ownerDoc && elem.parentNode !== null) {
         elem = elem.parentNode;
         elemArr.push ({id: elem.id, class: elem.className});
     }
@@ -118,7 +136,8 @@ function parentChain (elem, styles) {
 // code adapted from user adardesign's answer in http://stackoverflow.com/questions/13204785/is-it-possible-to-read-the-styles-of-css-classes-not-being-used-in-the-dom-using
 function usedStyles (elem, subtree) {
     var needed = [], rule;
-    var CSSSheets = document.styleSheets;
+    var ownerDoc = elem.ownerDocument || document;
+    var CSSSheets = ownerDoc.styleSheets;
 
     for(j=0;j<CSSSheets.length;j++){
         for(i=0;i<CSSSheets[j].cssRules.length;i++){
