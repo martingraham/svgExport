@@ -140,6 +140,8 @@ function usedStyles (elem, subtree) {
     var CSSSheets = ownerDoc.styleSheets;
 
     for(j=0;j<CSSSheets.length;j++){
+        if (CSSSheets[j].cssRules == null)
+          continue;
         for(i=0;i<CSSSheets[j].cssRules.length;i++){
             rule = CSSSheets[j].cssRules[i];
             var bool = false;
