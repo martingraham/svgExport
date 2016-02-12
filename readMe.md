@@ -1,7 +1,7 @@
 SVGExport is a chrome extension that trawls the current page's DOM for SVG elements and makes copies of them. This only copies inline styles so it then collates all the css rules that apply to that svg element and it's child nodes and stuffs them as a style element inside the SVG.
 Finally it serializes each SVG element and uses Eli Grey's FileSaver (https://github.com/eligrey/FileSaver.js/) to save them all as SVG files into your download folder. For the most part, this produces usable output for Inkscape etc including clipping via defs in a svg. (If you set fills using rgba it won't work, use separate fill and fill-opacity css rules.)
 
-Thanks to the user adardesign who's code i used from stackoverflow. The alternative was storing every declared css rule and this actually knackered the svg when it started including adblock css rules etc.
+Thanks to the user adardesign who's code i used from stackoverflow. The alternative was storing every declared css rule and this actually knackered the svg when it started including adblock css rules etc. Also to github contributor xinczhang for spotting a bug when no css was present.
 
 ***to install from the chrome store -->
 https://chrome.google.com/webstore/detail/export-svg-with-style/dkjdcaddoplepioppogpckelchefhddi?hl=en-GB
