@@ -1,7 +1,7 @@
 {
   "name": "Export SVG with Style",
   "description": "Adds a SVG export button to the browser, which spits out SVG DOM elements present on page as files including CSS.",
-  "version": "1.16",
+  "version": "1.17",
   "background": {
     "scripts": ["background.js"]
   },

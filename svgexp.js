@@ -43,7 +43,7 @@ function makeSVGDoc (svgElem) {
     var ownerDoc = cloneSVG.ownerDocument || document;
 
     // find all styles inherited/referenced at or below this node
-    var styles = usedStyles (svgElem, true);
+    var styles = usedStyles (svgElem, true, true);
 
     // collect relevant info on parent chain of svg node
     var predecessorInfo = parentChain (svgElem, styles);
@@ -139,27 +139,32 @@ function parentChain (elem, styles) {
 }
 
 // code adapted from user adardesign's answer in http://stackoverflow.com/questions/13204785/is-it-possible-to-read-the-styles-of-css-classes-not-being-used-in-the-dom-using
-function usedStyles (elem, subtree) {
+function usedStyles (elem, subtree, both) {
     var needed = [], rule;
     var ownerDoc = elem.ownerDocument || document;
     var CSSSheets = ownerDoc.styleSheets;
 
-    for(j=0;j<CSSSheets.length;j++){
+    for(var j=0;j<CSSSheets.length;j++){
         if (CSSSheets[j].cssRules == null)
           continue;
-        for(i=0;i<CSSSheets[j].cssRules.length;i++){
+        for(var i=0;i<CSSSheets[j].cssRules.length;i++){
             rule = CSSSheets[j].cssRules[i];
-            var bool = false;
+            var match = false;
             // Issue reported, css rule '[ng:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak, .ng-hide:not(.ng-hide-animate)' gives error
             // It's the [ng:cloak] bit that does the damage
             // Fix found from https://github.com/exupero/saveSvgAsPng/issues/11 - but the css rule isn't applied
             try {
-                bool = ( subtree ? elem.querySelectorAll(rule.selectorText).length > 0 : elem.matches(rule.selectorText));
+                if (subtree) {
+                    match = elem.querySelectorAll(rule.selectorText).length > 0;
+                }
+                if (!subtree || both) {
+                    match |= elem.matches(rule.selectorText);
+                }
             }
             catch (err) {
                 console.warn ("CSS selector error: "+rule.selectorText+". Often angular issue.", err);
             }
-            if (bool) { needed.push (rule.cssText); }
+            if (match) { needed.push (rule.cssText); }
         }
     }
 
