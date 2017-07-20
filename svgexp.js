@@ -19,14 +19,22 @@ function getAllSVGElements () {
     // search through all document objects, including those in iframes
     var allIFrames = [].slice.apply (document.getElementsByTagName('iframe'));
     var docs = [document];
+    var failedFrames = 0;
     allIFrames.forEach (function (iframe) {
         try {
             docs.push (iframe.contentDocument || iframe.contentWindow.document);
         }
         catch (e) {
+            failedFrames++;
+            //iframe.style.border = "1px solid red";
             console.log ("Protected cross-domain IFrame", iframe);
         }
     });
+    
+    if (failedFrames) {
+        console.log (failedFrames+" IFrame(s) were not reachable, may contain svgs");
+        //window.alert (failedFrames+" IFrame(s) were not reachable, may contain svgs");
+    }
 
     var allSvgs = [];
     docs.forEach (function(doc) {
@@ -111,7 +119,7 @@ function parentChain (elem, styles) {
     var elemArr = [];
     while (elem.parentNode !== ownerDoc && elem.parentNode !== null) {
         elem = elem.parentNode;
-        elemArr.push ({id: elem.id, class: elem.className});
+        elemArr.push ({id: elem.id, class: elem.getAttribute("class") || ""});
     }
 
     // see if id or element class are referenced in any styles collected below the svg node
