@@ -4,14 +4,16 @@
 
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-        
-       var svgs = getAllSVGElements ();
-        //console.log ("svgs", svgs);
-        var svgDocs = svgs.map (function(svg) { return makeSVGDoc (svg); });
-        //console.log ("docs", docs);
-        saveSVGDocs (svgDocs);
 
-        sendResponse({status: "finished"});
+       var svgs = getAllSVGElements ();
+
+        var promises = svgs.map (function(svg) { return makeSVGDoc (svg); });
+
+        Promise.all(promises).then(function(svgDocs) {
+          console.log(svgDocs)
+          saveSVGDocs (svgDocs);
+          sendResponse({status: "finished"});
+        })
     }
 );
 
@@ -30,7 +32,7 @@ function getAllSVGElements () {
             console.log ("Protected cross-domain IFrame", iframe);
         }
     });
-    
+
     if (failedFrames) {
         console.log (failedFrames+" IFrame(s) were not reachable, may contain svgs");
         //window.alert (failedFrames+" IFrame(s) were not reachable, may contain svgs");
@@ -81,7 +83,7 @@ function makeSVGDoc (svgElem) {
             parentAdded = true;
         }
     }
-    
+
     // if no dummy parent added in previous section, but our svg isn't root then add one as placeholder
     if (svgElem.parentNode != null && !parentAdded) {
         var dummySVGElem = ownerDoc.createElement ("svg");
@@ -93,7 +95,7 @@ function makeSVGDoc (svgElem) {
         cloneSVG = dummySVGElem;
         parentAdded = true;
     }
-    
+
     // Copy svg's computed style (it's style context) if a dummy parent node has been introduced
     if (parentAdded) {
         cloneSVG.setAttribute ("style", window.getComputedStyle(svgElem).cssText);
@@ -110,7 +112,22 @@ function makeSVGDoc (svgElem) {
     styleElem.appendChild (styleText);
     cloneSVG.insertBefore (styleElem, cloneSVG.firstChild);
 
-    return cloneSVG;
+    var promises = []
+
+    cloneSVG.querySelectorAll('image').forEach(function(img) {
+       promises.push(new Promise(function(resolve, reject) {
+         toDataURL(img.href.baseVal , function(data) {
+           img.href.baseVal = data
+           resolve()
+         })
+       }))
+    });
+    
+    return new Promise(function(resolve, reject) {
+      Promise.all(promises).then(function(values) {
+        resolve(cloneSVG)
+      })
+    })
 }
 
 function parentChain (elem, styles) {
@@ -189,4 +206,23 @@ function saveSVGDocs (svgDocs) {
         var blob = new Blob([xmlStr], {type: "image/svg+xml"});
         saveAs(blob, "saved"+i+".svg");
     });
+}
+
+/* from https://stackoverflow.com/questions/934012/get-image-data-in-javascript/42916772#42916772 */
+function toDataURL(url, callback){
+    console.log("CONVERT...")
+    var xhr = new XMLHttpRequest();
+    xhr.open('get', url);
+    xhr.responseType = 'blob';
+    xhr.onload = function(){
+      var fr = new FileReader();
+
+      fr.onload = function(){
+        callback(this.result);
+      };
+
+      fr.readAsDataURL(xhr.response); // async call
+    };
+
+    xhr.send();
 }
