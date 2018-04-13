@@ -10,10 +10,10 @@ chrome.runtime.onMessage.addListener(
         var promises = svgs.map (function(svg) { return makeSVGDoc (svg); });
 
         Promise.all(promises).then(function(svgDocs) {
-          console.log(svgDocs)
+          console.log(svgDocs);
           saveSVGDocs (svgDocs);
           sendResponse({status: "finished"});
-        })
+        });
     }
 );
 
@@ -100,34 +100,36 @@ function makeSVGDoc (svgElem) {
     if (parentAdded) {
         cloneSVG.setAttribute ("style", window.getComputedStyle(svgElem).cssText);
     }
-
-    cloneSVG.setAttribute ("version", "1.1");
-    cloneSVG.setAttribute ("xmlns", "http://www.w3.org/2000/svg");    // XMLSerializer does this
+	
+ 	cloneSVG.setAttribute ("version", "1.1");
+	cloneSVG.setAttribute ("xmlns", "http://www.w3.org/2000/svg");    // XMLSerializer does this
     cloneSVG.setAttribute ("xmlns:xlink", "http://www.w3.org/1999/xlink");  // when I used setAttributeNS it ballsed up
-
-
+	// however using these attributeNS calls work, and stops errors in IE11. Win.
+	//cloneSVG.setAttributeNS ("http://www.w3.org/2000/xmlns/", "xmlns", "http://www.w3.org/2000/svg");    // XMLSerializer does this
+    //cloneSVG.setAttributeNS ("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");  // when I used setAttributeNS it ballsed up
+	
     var styleElem = ownerDoc.createElement ("style");
     styleElem.setAttribute ("type", "text/css");
     var styleText = ownerDoc.createTextNode (styles.join("\n"));
     styleElem.appendChild (styleText);
     cloneSVG.insertBefore (styleElem, cloneSVG.firstChild);
 
-    var promises = []
+    var promises = [];
 
     cloneSVG.querySelectorAll('image').forEach(function(img) {
        promises.push(new Promise(function(resolve, reject) {
          toDataURL(img.href.baseVal , function(data) {
-           img.href.baseVal = data
-           resolve()
-         })
-       }))
+           img.href.baseVal = data;
+           resolve();
+         });
+       }));
     });
     
     return new Promise(function(resolve, reject) {
       Promise.all(promises).then(function(values) {
-        resolve(cloneSVG)
-      })
-    })
+        resolve(cloneSVG);
+      });
+    });
 }
 
 function parentChain (elem, styles) {
@@ -207,6 +209,28 @@ function usedStyles (elem, subtree, both) {
 
 function saveSVGDocs (svgDocs) {
     var xmls = new XMLSerializer();
+	
+	var max = svgDocs.length;
+	var i = 0;
+	if (max) {
+		function delaySave () {
+			setTimeout (function () {
+				var doc = svgDocs[i];
+				var xmlStr = xmls.serializeToString(doc);
+				// serializing adds an xmlns attribute to the style element ('cos it thinks we want xhtml), which knackers it for inkscape, here we chop it out
+				xmlStr = xmlStr.split("xmlns=\"http://www.w3.org/1999/xhtml\"").join("");
+				var blob = new Blob([xmlStr], {type: "image/svg+xml"});
+				saveAs(blob, "saved"+i+".svg");
+				i++;
+
+				if (i < max) {
+					delaySave();
+				}
+			}, 100);				 
+		}
+		delaySave();
+	}
+	/*
     svgDocs.forEach (function (doc, i) {
         var xmlStr = xmls.serializeToString(doc);
         // serializing adds an xmlns attribute to the style element ('cos it thinks we want xhtml), which knackers it for inkscape, here we chop it out
@@ -214,6 +238,9 @@ function saveSVGDocs (svgDocs) {
         var blob = new Blob([xmlStr], {type: "image/svg+xml"});
         saveAs(blob, "saved"+i+".svg");
     });
+	*/
+	
+	
 }
 
 /* from https://stackoverflow.com/questions/934012/get-image-data-in-javascript/42916772#42916772 */
