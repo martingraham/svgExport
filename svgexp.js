@@ -7,11 +7,12 @@ chrome.runtime.onMessage.addListener(
 
        var svgs = getAllSVGElements ();
 
+        var fnames = svgs.map (function (svg) { return helpfulFilename (svg); })
         var promises = svgs.map (function(svg) { return makeSVGDoc (svg); });
 
         Promise.all(promises).then(function(svgDocs) {
           console.log(svgDocs);
-          saveSVGDocs (svgDocs);
+          saveSVGDocs (svgDocs, fnames);
           sendResponse({status: "finished"});
         });
     }
@@ -33,9 +34,10 @@ function getAllSVGElements () {
         }
     });
 
+    var report = "SVG Export reports:\n";
     if (failedFrames) {
-        console.log (failedFrames+" IFrame(s) were not reachable, may contain svgs");
-        //window.alert (failedFrames+" IFrame(s) were not reachable, may contain svgs");
+        report += failedFrames+" IFrame(s) were not reachable, may contain SVGs.\n";
+        console.log (report);
     }
 
     var allSvgs = [];
@@ -43,7 +45,19 @@ function getAllSVGElements () {
         var allDocSvgs = [].slice.apply (doc.getElementsByTagName('svg'));
         allSvgs.push.apply (allSvgs, allDocSvgs);
     });
+    
+    report += allSvgs.length+" SVG element(s) discovered. Press Ok to continue."; 
+    alert (report);
+    
     return allSvgs;
+}
+
+function helpfulFilename (svgElem) {
+    var fname = (svgElem.getAttribute("id") ? "_Id_"+svgElem.getAttribute("id") : "") + (svgElem.getAttribute("class") ? "_Class_"+svgElem.getAttribute("class") : "");
+    fname = fname.replace (/[\\/:"*?<>|]+/, "");
+    fname = fname.substring (0, 120);
+    //console.log ("doc", fname);
+    return fname;
 }
 
 
@@ -62,9 +76,23 @@ function makeSVGDoc (svgElem) {
     // this means any styles referenced within the svg that depend on the presence of these classes/ids are fired
     var transferAttr = ["width", "height", "xmlns"];
     var parentAdded = false;
+    
+    var transferAttrs = function (dummySVG) {
+        dummySVG.appendChild (cloneSVG);
+        transferAttr.forEach (function (attr) {
+            var val = cloneSVG.getAttribute (attr);
+            if (val != null) {
+                dummySVG.setAttribute (attr, cloneSVG.getAttribute (attr));
+            }
+            cloneSVG.removeAttribute (attr);
+        });
+        cloneSVG = dummySVG;
+        parentAdded = true;
+    };
+    
     for (var p = 0; p < predecessorInfo.length; p++) {
         var pinf = predecessorInfo [p];
-        var dummySVGElem = ownerDoc.createElement ("svg");
+        var dummySVGElem = ownerDoc.createElementNS ("http://www.w3.org/2000/svg", "svg");
         var empty = true;
         Object.keys(pinf).forEach (function (key) {
             if (pinf[key]) {
@@ -74,26 +102,14 @@ function makeSVGDoc (svgElem) {
         });
         // If the dummy svg has no relevant id, classes or computed style then ignore it, otherwise make it the new root
         if (!empty) {
-            dummySVGElem.appendChild (cloneSVG);
-            transferAttr.forEach (function (attr) {
-                dummySVGElem.setAttribute (attr, cloneSVG.getAttribute (attr));
-                cloneSVG.removeAttribute (attr);
-            });
-            cloneSVG = dummySVGElem;
-            parentAdded = true;
+            transferAttrs (dummySVGElem);
         }
     }
 
     // if no dummy parent added in previous section, but our svg isn't root then add one as placeholder
     if (svgElem.parentNode != null && !parentAdded) {
-        var dummySVGElem = ownerDoc.createElement ("svg");
-        dummySVGElem.appendChild (cloneSVG);
-        transferAttr.forEach (function (attr) {
-            dummySVGElem.setAttribute (attr, cloneSVG.getAttribute (attr));
-            cloneSVG.removeAttribute (attr);
-        });
-        cloneSVG = dummySVGElem;
-        parentAdded = true;
+        var dummySVGElem = ownerDoc.createElementNS ("http://www.w3.org/2000/svg", "svg");
+        transferAttrs (dummySVGElem);
     }
 
     // Copy svg's computed style (it's style context) if a dummy parent node has been introduced
@@ -207,9 +223,10 @@ function usedStyles (elem, subtree, both) {
 }
 
 
-function saveSVGDocs (svgDocs) {
+function saveSVGDocs (svgDocs, putativeFileNames) {
     var xmls = new XMLSerializer();
 	
+    // to get round multiple download restriction
 	var max = svgDocs.length;
 	var i = 0;
 	if (max) {
@@ -220,7 +237,7 @@ function saveSVGDocs (svgDocs) {
 				// serializing adds an xmlns attribute to the style element ('cos it thinks we want xhtml), which knackers it for inkscape, here we chop it out
 				xmlStr = xmlStr.split("xmlns=\"http://www.w3.org/1999/xhtml\"").join("");
 				var blob = new Blob([xmlStr], {type: "image/svg+xml"});
-				saveAs(blob, "saved"+i+".svg");
+				saveAs(blob, "savedSVGExport"+i+putativeFileNames[i]+".svg");
 				i++;
 
 				if (i < max) {
@@ -230,17 +247,18 @@ function saveSVGDocs (svgDocs) {
 		}
 		delaySave();
 	}
-	/*
+    
+	
+    /*
     svgDocs.forEach (function (doc, i) {
         var xmlStr = xmls.serializeToString(doc);
         // serializing adds an xmlns attribute to the style element ('cos it thinks we want xhtml), which knackers it for inkscape, here we chop it out
         xmlStr = xmlStr.split("xmlns=\"http://www.w3.org/1999/xhtml\"").join("");
         var blob = new Blob([xmlStr], {type: "image/svg+xml"});
-        saveAs(blob, "saved"+i+".svg");
+        saveAs(blob, "saved"+i+putativeFileNames[i]+".svg");
     });
+	
 	*/
-	
-	
 }
 
 /* from https://stackoverflow.com/questions/934012/get-image-data-in-javascript/42916772#42916772 */
