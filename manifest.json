@@ -1,21 +1,21 @@
 {
   "name": "Export SVG with Style",
   "description": "Adds a SVG export button to the browser, which spits out SVG DOM elements present on page as files including CSS.",
-  "version": "1.22",
+  "version": "1.23",
   "background": {
-    "scripts": ["background.js"]
+    "service_worker": "background.js"
   },
   "content_scripts": [
     { "matches": ["http://*/*","https://*/*"], "js": ["svgexp.js", "fileSaver/FileSaver.js"] }
   ],
   "permissions": [
-    "activeTab", "tabs", "http://*/*", "https://*/*"
+    "activeTab"
   ],
-  "browser_action": {
+  "action": {
       "default_title": "Export SVG",
       "default_icon": "svg_16x16.png"
   },
-  "manifest_version": 2,
+  "manifest_version": 3,
   "icons": {
       "16": "svg_16x16.png",
       "48": "svg_48x48.png",

@@ -18,6 +18,7 @@ chrome.runtime.onMessage.addListener(
     }
 );
 
+
 function getAllSVGElements () {
     // search through all document objects, including those in iframes
     var allIFrames = [].slice.apply (document.getElementsByTagName('iframe'));
@@ -279,3 +280,4 @@ function toDataURL(url, callback){
 
     xhr.send();
 }
+
