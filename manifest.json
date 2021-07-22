@@ -8,9 +8,7 @@
   "content_scripts": [
     { "matches": ["http://*/*","https://*/*"], "js": ["svgexp.js", "fileSaver/FileSaver.js"] }
   ],
-  "permissions": [
-    "activeTab"
-  ],
+  "permissions": [],
   "action": {
       "default_title": "Export SVG",
       "default_icon": "svg_16x16.png"
